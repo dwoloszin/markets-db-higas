@@ -234,18 +234,13 @@ def probe(zip_code: str) -> None:
     d1, d2 = deps[0], deps[1]
     c1 = d1[3][0] if d1[3] else (None, None, None)
     print(f"[higas-probe] D1={d1[:3]} C1={c1}")
-    call("items department_id=D1", "items", {"department_id": d1[1], "limit": 30, "page": 1})
-    call("items department_id=D2", "items", {"department_id": d2[1], "limit": 30, "page": 1})
-    call("items department=D1", "items", {"department": d1[1], "limit": 30, "page": 1})
-    call("items department_slug=D1", "items", {"department_slug": d1[2], "limit": 30, "page": 1})
-    call("items category_id=C1", "items", {"category_id": c1[1], "limit": 30, "page": 1})
-    call("items category=C1", "items", {"category": c1[1], "limit": 30, "page": 1})
-    call("items category_slug=C1", "items", {"category_slug": c1[2], "limit": 30, "page": 1})
-    call("items categories=C1", "items", {"categories": c1[1], "limit": 30, "page": 1})
-    call("search department_id=D1 N=50", "search", {"search": "", "department_id": d1[1], "N": 50, "page": 1})
-    call("search category_id=C1 N=50", "search", {"search": "", "category_id": c1[1], "N": 50, "page": 1})
-    call("recommendations/departments/D1 N=30 page=2", f"recommendations/departments/{d1[1]}", {"N": 30, "page": 2})
-    call("recommendations/categories/C1 N=30", f"recommendations/categories/{c1[1]}", {"N": 30})
+    call("items category_id=DEPT(D1)", "items", {"category_id": d1[1], "limit": 30, "page": 1})
+    call("items category_id=DEPT(D2)", "items", {"category_id": d2[1], "limit": 30, "page": 1})
+    call("items category_id=DEPT(D1) page=12", "items", {"category_id": d1[1], "limit": 30, "page": 12})
+    call("items subcategory_id=C1", "items", {"subcategory_id": c1[1], "limit": 30, "page": 1})
+    call("recs/departments/D1 N=30 page=10", f"recommendations/departments/{d1[1]}", {"N": 30, "page": 10})
+    call("recs/departments/D1 N=30 page=60", f"recommendations/departments/{d1[1]}", {"N": 30, "page": 60})
+    call("recs/categories/C1 N=30 page=3", f"recommendations/categories/{c1[1]}", {"N": 30, "page": 3})
 
 
 class _NullDB:
