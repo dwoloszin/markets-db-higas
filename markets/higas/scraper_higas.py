@@ -192,6 +192,61 @@ def scrape(db, zip_code: str, limit: Optional[int] = None) -> Dict[str, int]:
     return total
 
 
+def probe(zip_code: str) -> None:
+    """Endpoint diagnostics (run on a fresh IP with --probe): which listing route works and how big a page can be."""
+    import json as _json
+    session = make_session()
+    store = resolve_store(session, _NullDB(), zip_code)
+    store_id = str(store["id"]); sub = store.get("subdomain") or DEFAULT_SUBDOMAIN
+    web = f"https://{sub}.instabuy.app.br"
+    client = _ApiClient({"x-store-id": store_id, "Origin": web, "Referer": web + "/", "Accept": "application/json"})
+    print(f"[higas-probe] client={client.kind} store={store_id}")
+
+    def call(label, path, params):
+        time.sleep(6)
+        try:
+            r = client.get(f"{API_V5}/{path}", params)
+            body = r.text[:150].replace("
+", " ")
+            n = None
+            try:
+                d = r.json(); n = len(d.get("data") or []) if isinstance(d.get("data"), list) else None
+                pag = d.get("pagination")
+            except Exception:
+                pag = None
+            print(f"[higas-probe] {label:<38} HTTP {r.status_code} items={n} pagination={pag} {'' if n else body}")
+            return r
+        except Exception as exc:
+            print(f"[higas-probe] {label:<38} EXC {exc.__class__.__name__}")
+
+    r = call("menu", "menu", {})
+    deps = []
+    try:
+        for it in (r.json().get("data") or {}).get("items") or []:
+            link = it.get("link") or {}
+            if link.get("type") == "department":
+                deps.append((it.get("label"), link.get("department_id")))
+    except Exception:
+        pass
+    print(f"[higas-probe] departments: {len(deps)} {deps[:3]}")
+    call("items limit=30 page=8 (known 400?)", "items", {"limit": 30, "page": 8})
+    call("items limit=10 page=22", "items", {"limit": 10, "page": 22})
+    call("search search=a N=100", "search", {"search": "a", "N": 100})
+    if deps:
+        d0 = deps[0][1]
+        call("recommendations/departments N=100", f"recommendations/departments/{d0}", {"N": 100})
+        call("recommendations/departments N=1000", f"recommendations/departments/{d0}", {"N": 1000})
+        call("items department_id N=30 page=1", "items", {"department_id": d0, "limit": 30, "page": 1})
+        call("search department_id", "search", {"search": "", "department_id": d0, "N": 100})
+    call("items limit=30 page=9", "items", {"limit": 30, "page": 9})
+    call("items limit=30 page=100", "items", {"limit": 30, "page": 100})
+
+
+class _NullDB:
+    def save_store_info(self, *a, **k):
+        pass
+
+
 if __name__ == "__main__":
     from markets.common.runner import run_cli
-    run_cli(STORE_KEY, scrape)
+    run_cli(STORE_KEY, scrape, probe=probe)
