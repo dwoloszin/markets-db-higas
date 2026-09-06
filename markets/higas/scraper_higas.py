@@ -206,8 +206,7 @@ def probe(zip_code: str) -> None:
         time.sleep(6)
         try:
             r = client.get(f"{API_V5}/{path}", params)
-            body = r.text[:150].replace("
-", " ")
+            body = r.text[:150].replace(chr(10), " ")
             n = None
             try:
                 d = r.json(); n = len(d.get("data") or []) if isinstance(d.get("data"), list) else None
